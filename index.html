@@ -17,41 +17,42 @@
         [v-cloak] { display: none; }
         .price-text { font-family: 'Chivo Mono', monospace; }
         .checkbox-custom { accent-color: var(--wood); width: 1.1rem; height: 1.1rem; cursor: pointer; }
-        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
-        /* 優化iOS點擊閃爍 */
-        button, a { -webkit-tap-highlight-color: transparent; }
+        .modal-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 100; }
+        /* 確保頂部按鈕永遠在最前方 */
+        .sync-controls { position: absolute; right: 1rem; top: 2.5rem; z-index: 50; display: flex; gap: 1rem; align-items: center; }
+        button { -webkit-tap-highlight-color: transparent; }
     </style>
 </head>
 <body class="antialiased overflow-x-hidden">
 
 <div id="app" v-cloak class="max-w-md mx-auto min-h-screen flex flex-col shadow-xl bg-[#FDFCFB] relative overflow-x-hidden">
     
+    <div class="sync-controls">
+        <button @click="exportData" class="text-gray-400 hover:text-[#8C7662] transition-colors" title="匯出代碼">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 3v11m0-11L8.5 6.5M12 3l3.5 3.5M8 10H6.5A2.5 2.5 0 004 12.5v7A2.5 2.5 0 006.5 22h11a2.5 2.5 0 002.5-2.5v-7A2.5 2.5 0 0017.5 10H16" />
+            </svg>
+        </button>
+        <button @click="showImportModal = true" class="text-gray-400 hover:text-[#8C7662] transition-colors" title="匯入代碼">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+        </button>
+    </div>
+
     <header class="p-6 pt-10 text-center relative">
         <h1 class="text-xl font-medium tracking-[0.3em] text-[#5D544C]">居家裝修採購管家</h1>
         <div class="w-6 h-[1px] wood-accent mx-auto mt-3"></div>
-        
-        <div class="absolute right-4 top-10 flex items-center gap-4">
-            <button @click="exportData" class="text-gray-400 hover:text-[#8C7662]" title="匯出代碼">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 3v13m0-13L8.5 6.5M12 3l3.5 3.5M8 10H6.5A2.5 2.5 0 004 12.5v7A2.5 2.5 0 006.5 22h11a2.5 2.5 0 002.5-2.5v-7A2.5 2.5 0 0017.5 10H16" />
-                </svg>
-            </button>
-            <button @click="showImportModal = true" class="text-gray-400 hover:text-[#8C7662]" title="匯入代碼">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                </svg>
-            </button>
-        </div>
     </header>
 
-    <nav class="flex overflow-x-auto border-b border-[#E8E2D9] sticky top-0 bg-[#FDFCFB] z-10 no-scrollbar">
+    <nav class="flex overflow-x-auto border-b border-[#E8E2D9] sticky top-0 bg-[#FDFCFB] z-30 no-scrollbar">
         <button v-for="tab in allTabs" :key="tab.id" @click="currentTab = tab.id"
                 :class="['flex-none px-4 py-4 text-xs transition-all tracking-wider', currentTab === tab.id ? 'tab-active' : 'text-gray-400 font-light']">
             {{ tab.name }}
         </button>
     </nav>
 
-    <main class="flex-grow p-6 pb-40">
+    <main class="flex-grow p-6 pb-40 relative">
         <div v-if="currentTab === 'planning'">
             <h2 class="text-lg font-medium mb-6 tracking-widest text-[#5D544C]">家具清單規劃</h2>
             <div class="space-y-6">
@@ -62,7 +63,7 @@
             </div>
         </div>
 
-        <div v-else-if="currentTab !== 'summary'">
+        <div v-else-if="!['summary'].includes(currentTab)">
             <section class="cream-card rounded-3xl p-6 mb-8 shadow-sm">
                 <div class="space-y-4">
                     <input v-model="form.name" type="text" placeholder="名稱 (分類)" class="w-full border-b border-[#E8E2D9] py-2 text-sm focus:border-[#8C7662] bg-transparent">
@@ -96,20 +97,24 @@
             </div>
         </div>
 
-        <div v-else>
+        <div v-else-if="currentTab === 'summary'">
             <h2 class="text-lg font-medium mb-6 px-1 tracking-widest text-[#5D544C]">最終採購清單</h2>
             <div class="space-y-4">
                 <div v-for="item in selectedInventory" :key="item.id" class="cream-card rounded-2xl p-5 flex items-center gap-4 border-l-4 border-[#8C7662]">
                     <div class="flex-grow">
-                        <div class="flex justify-between items-start"><span class="text-[9px] bg-[#F5F2ED] text-[#8C7662] px-2 py-0.5 rounded font-bold uppercase">{{ item.roomName }} / {{ item.name }}</span><span class="text-sm text-[#8C7662] price-text font-bold">HK$ {{ item.price }}</span></div>
+                        <div class="flex justify-between items-start">
+                            <span class="text-[9px] bg-[#F5F2ED] text-[#8C7662] px-2 py-0.5 rounded font-bold uppercase">{{ item.roomName }} / {{ item.name }}</span>
+                            <span class="text-sm text-[#8C7662] price-text font-bold">HK$ {{ item.price }}</span>
+                        </div>
                         <p class="font-medium mt-2 text-xs">{{ item.model || '無型號' }}</p>
                     </div>
                 </div>
+                <div v-if="selectedInventory.length === 0" class="text-center py-20 text-gray-300 text-xs">尚未勾選任何項目</div>
             </div>
         </div>
     </main>
 
-    <div v-if="showImportModal" class="fixed inset-0 z-50 flex items-center justify-center p-6 modal-overlay" @click.self="showImportModal = false">
+    <div v-if="showImportModal" class="fixed inset-0 z-[100] flex items-center justify-center p-6 modal-overlay" @click.self="showImportModal = false">
         <div class="bg-white rounded-3xl p-6 w-full max-w-xs shadow-2xl">
             <h3 class="text-sm font-bold mb-4 tracking-widest text-[#5D544C] text-center">讀取家人代碼</h3>
             <textarea v-model="importCode" placeholder="在此貼上代碼..." class="w-full h-32 bg-gray-50 rounded-xl p-4 text-[10px] border-none focus:ring-1 focus:ring-[#8C7662] resize-none mb-4"></textarea>
@@ -120,7 +125,7 @@
         </div>
     </div>
 
-    <div v-if="selectedTotal > 0" class="fixed bottom-0 max-w-md w-full bg-white border-t border-[#E8E2D9] p-6 shadow-2xl z-20">
+    <div v-if="selectedTotal > 0" class="fixed bottom-0 max-w-md w-full bg-white border-t border-[#E8E2D9] p-6 shadow-2xl z-40">
         <div class="flex justify-between items-baseline"><span class="text-[10px] text-gray-400 font-light tracking-widest uppercase">Total HKD</span><span class="text-2xl text-[#8C7662] price-text font-bold">{{ selectedTotal }}</span></div>
     </div>
 </div>
@@ -134,22 +139,21 @@
             const showImportModal = ref(false)
             const importCode = ref('')
             const form = ref({ name: '', model: '', brand: '', shop: '', price: '' })
-            // 優化：只保留本地狀態，不寫入 LocalStorage，降低寫入頻率
             const expandedGroups = ref({})
             const planningData = ref({ living: '', toilet: '', small_room: '', utility_room: '', master_room: '' })
             const roomTabs = [ { id: 'living', name: '客廳' }, { id: 'toilet', name: '廁所' }, { id: 'small_room', name: '細房' }, { id: 'utility_room', name: '梗房' }, { id: 'master_room', name: '大房' } ]
             const tabs = ref(roomTabs.map(r => ({ ...r, items: [] })))
+            
             const allTabs = computed(() => [ { id: 'planning', name: '規劃' }, ...tabs.value, { id: 'summary', name: '總預算' } ])
 
             onMounted(() => {
-                const savedItems = localStorage.getItem('home_v12_items'); if (savedItems) tabs.value = JSON.parse(savedItems)
-                const savedPlan = localStorage.getItem('home_v12_plan'); if (savedPlan) planningData.value = JSON.parse(savedPlan)
+                const savedItems = localStorage.getItem('home_v13_items'); if (savedItems) tabs.value = JSON.parse(savedItems)
+                const savedPlan = localStorage.getItem('home_v13_plan'); if (savedPlan) planningData.value = JSON.parse(savedPlan)
             })
 
-            // 優化監聽邏輯：只在數據變更時儲存，降低本地儲存寫入負載
             watch([tabs, planningData], () => {
-                localStorage.setItem('home_v12_items', JSON.stringify(tabs.value))
-                localStorage.setItem('home_v12_plan', JSON.stringify(planningData.value))
+                localStorage.setItem('home_v13_items', JSON.stringify(tabs.value))
+                localStorage.setItem('home_v13_plan', JSON.stringify(planningData.value))
             }, { deep: true })
 
             const activeTabData = computed(() => tabs.value.find(t => t.id === currentTab.value) || tabs.value[0])
@@ -158,6 +162,7 @@
                 activeTabData.value.items.forEach(item => { if (!groups[item.name]) groups[item.name] = []; groups[item.name].push(item); });
                 return groups
             })
+
             const toggleGroup = (name) => expandedGroups.value[name] = !expandedGroups.value[name]
             const addItem = () => { if (!form.value.name.trim()) return alert('請輸入名稱'); activeTabData.value.items.push({ ...form.value, id: Date.now(), selected: false }); expandedGroups.value[form.value.name] = true; form.value = { name: '', model: '', brand: '', shop: '', price: '' } }
             const removeItem = (id) => { const idx = activeTabData.value.items.findIndex(i => i.id === id); if (idx !== -1) activeTabData.value.items.splice(idx, 1) }
